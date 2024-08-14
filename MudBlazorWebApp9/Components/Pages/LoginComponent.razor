@@ -1,0 +1,197 @@
+﻿@page "/login"
+@using MudBlazorWebApp9.Components.Layout
+@using MudBlazorWebApp9.Models
+@using System.Net.Http
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using MudBlazorWebApp9.Services
+@using TokenResponse = MudBlazorWebApp9.Models.TokenResponse
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@layout MinimalLayout
+@inject IAuthService AuthService
+
+<style>
+    .companyName {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        font-size: 32px;
+        font-weight: bold;
+        color: white; /* Ensure the text is white */
+    }
+
+    .companyLogo {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        max-width: 253px;
+        height: auto;
+    }
+
+    .full-screen-div {
+        width: 100vw;
+        height: 100vh;
+        min-height: 100%;
+        overflow-x: hidden;
+        overflow-y: hidden;
+        background: url('/images/Maskgroup.png') no-repeat center center;
+        background-size: cover;
+        display: flex;
+        justify-content: flex-start; /* Align items to the start (left) */
+        align-items: center;
+        background-color: #1a1a1a; /* Dark background color for debugging */
+        padding-left: 2rem; /* Add some padding on the left for spacing */
+    }
+
+    .login-card {
+        min-width: 400px;
+        max-width: 20vw;
+        border-radius: 1rem;
+        background-color: rgba(255, 255, 255, 0.1); /* Slight transparency */
+        color: white;
+    }
+
+    .card-container {
+        display: flex;
+        align-items: flex-start; /* Align the card towards the top */
+    }
+
+    .login-title {
+        text-align: left; /* Aligns the login title to the left */
+        margin-bottom: 1rem; /* Adds some space below the title */
+        font-size: 24px; /* Adjust font size as needed */
+        font-weight: bold;
+    }
+
+    @@media only screen and (max-width: 1007px) and (min-width: 721px) {
+        .card-container {
+            justify-content: center;
+            align-content: start;
+        }
+
+        .full-screen-div {
+            background: none;
+        }
+    }
+
+    @@media only screen and (max-width: 720px) {
+        .companyName {
+            left: 0.5rem;
+            font-size: 28px;
+        }
+
+        .companyLogo {
+            right: 0.5rem;
+            max-width: 200px;
+        }
+
+        .login-card {
+            max-width: 90%;
+        }
+    }
+
+    @@media only screen and (max-width: 435px) {
+        .companyName {
+            left: 0.5rem;
+            font-size: 24px;
+        }
+
+        .companyLogo {
+            right: 0.5rem;
+            max-width: 150px;
+        }
+
+        .login-card {
+            min-width: 300px;
+        }
+    }
+</style>
+
+<div class="full-screen-div">
+    <!-- Company Name in the top left corner -->
+    <div class="companyName">
+        @LoginTitle
+    </div>
+
+    <!-- Company Logo in the top right corner -->
+    <div class="companyLogo">
+        <img src="@LoginLogo" alt="Company Logo" />
+    </div>
+    <div class="d-flex row card-container">
+        <MudCard Class="login-card">
+            <MudCardContent>
+                <MudText Typo="Typo.h4" Class="login-title">Login</MudText> <!-- Title aligned to the left -->
+
+                <MudForm Model="@formModel" @ref="form">
+                    <div class="d-flex bd-highlight dialog-divider">
+                        <MudTextField Label="Username" @bind-Value="formModel.Username" Required="true" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="Icons.Material.Filled.Person" Class="mt-4"></MudTextField>
+                    </div>
+
+                    <div class="d-flex bd-highlight dialog-divider">
+                        <MudTextField Label="Password" @bind-Value="formModel.Password" InputType="InputType.Password" Required="true" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="Icons.Material.Filled.Lock" Class="mt-4"></MudTextField>
+                    </div>
+
+                    <div class="form-check pt-3">
+                        <MudCheckBox @bind-Checked="RememberMe" Color="Color.Primary">Remember My Login</MudCheckBox>
+                    </div>
+
+                    <div class="d-flex justify-content-end p-3 row">
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled" Class="mt-4 w-100" Disabled="!form.IsValid" OnClick="OnLogin">Login</MudButton>
+                    </div>
+                </MudForm>
+            </MudCardContent>
+        </MudCard>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <MudOverlay Visible="true">
+        <MudProgressCircular Indeterminate="true" />
+    </MudOverlay>
+}
+
+@code {
+    private LoginFormModel formModel = new();
+    private MudForm form;
+    private bool IsLoading;
+    private bool RememberMe;
+
+    public string LoginTitle { get; set; }
+    public string LoginLogo { get; set; }
+
+    protected override void OnInitialized()
+    {
+        LoginTitle = "Luminous XR Portal";
+        LoginLogo = "/images/LuminousLogo.png"; // Correct path for your logo image
+    }
+
+    private async Task OnLogin()
+    {
+        if (form.IsValid)
+        {
+            IsLoading = true;
+
+            try
+            {
+                var tokenResponse = await AuthService.AuthenticateAsync(formModel.Username, formModel.Password);
+
+                // Store the access token (example using localStorage)
+                // await jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", tokenResponse.AccessToken);
+
+                // Redirect to the main page or wherever you want after successful login
+                Navigation.NavigateTo("/");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Login failed: " + ex.Message);
+                // Optionally display an error message to the user
+            }
+
+            IsLoading = false;
+        }
+    }
+
+
+}

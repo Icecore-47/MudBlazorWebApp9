@@ -1,0 +1,64 @@
+﻿@page "/authstate"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+
+<h3>Authentication State</h3>
+
+@if (authState == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <p>@(authState.User.Identity.IsAuthenticated ? "Authenticated" : "Not authenticated")</p>
+    @if (authState.User.Identity.IsAuthenticated)
+    {
+        <h4>Claims:</h4>
+        <ul>
+            @foreach (var claim in authState.User.Claims)
+            {
+                <li>@claim.Type: @claim.Value</li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    private AuthenticationState authState;
+    private bool _isPrerendering;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if this is prerendering
+        var httpContext = HttpContextAccessor.HttpContext;
+        _isPrerendering = httpContext?.Request.Headers["User-Agent"].ToString().Contains("Headless") ?? false;
+
+        if (!_isPrerendering)
+        {
+            // Proceed with JS interop after prerendering is complete
+            authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isPrerendering)
+        {
+            try
+            {
+                // JS interop should only be called when the app is fully interactive (client-side)
+                var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+                Console.WriteLine("Stored Token: " + token);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error retrieving token from local storage: " + ex.Message);
+            }
+
+            StateHasChanged(); // Refresh UI if needed
+        }
+    }
+}

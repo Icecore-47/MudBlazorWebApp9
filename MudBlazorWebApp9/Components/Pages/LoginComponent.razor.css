@@ -1,0 +1,58 @@
+﻿.full-screen-div {
+    width: 100vw;
+    height: 100vh;
+    background: url("/images/Maskgroup.png") no-repeat center center;
+    background-size: cover;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.background {
+    background: linear-gradient(45deg, rgba(37, 42, 47, 1) 0%, rgba(37, 42, 47, 1) 65%, rgba(59, 63, 68, 1) 100%);
+}
+
+.login-card {
+    max-width: 100%;
+    background-color: rgba(0, 0, 0, 0.8); /* Dark background */
+    color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5);
+}
+
+.LumButton {
+    background-color: #ff3300 !important;
+    color: white !important;
+}
+
+.login-title {
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.companyLogo {
+    margin: auto;
+    background-size: contain;
+    background-repeat: no-repeat;
+    height: 80px;
+    width: auto;
+    background-image: url("/images/LuminousLogo.png");
+}
+
+.mud-textfield, .mud-checkbox {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.w-100 {
+    width: 100%;
+}

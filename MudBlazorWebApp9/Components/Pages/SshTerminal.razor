@@ -1,0 +1,109 @@
+﻿@page "/sshterminal"
+@using System.Text
+@using MudBlazorWebApp9.Services
+@using Renci.SshNet
+
+@inject IJSRuntime JSRuntime
+@inject MudBlazor.ISnackbar Snackbar
+@inject SshCredentialService CredentialService
+
+<div id="terminal" style="width: 100%; height: 500px; background-color: black;"></div>
+
+<MudSelect T="string" Label="Select Credential" @bind-Value="selectedCredentialId">
+    @foreach (var credential in CredentialService.GetAllCredentials())
+    {
+        <MudSelectItem T="string" Value="@credential.Id">@credential.Name (@credential.Host)</MudSelectItem>
+    }
+</MudSelect>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Connect">Connect</MudButton>
+
+@code {
+    private SshClient _client;
+    private ShellStream _shellStream;
+    private string selectedCredentialId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initializeTerminal", "terminal");
+            await JSRuntime.InvokeVoidAsync("onTerminalData", DotNetObjectReference.Create(this));
+        }
+    }
+
+    private async Task Connect()
+    {
+        var credential = CredentialService.GetCredentialById(selectedCredentialId);
+        if (credential != null)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(credential.SshKeyContent))
+                {
+                    ConnectUsingSshKey(credential);
+                }
+                else
+                {
+                    _client = new SshClient(credential.Host, credential.Username, credential.Password);
+                    _client.Connect();
+                }
+
+                if (_client.IsConnected)
+                {
+                    _shellStream = _client.CreateShellStream("xterm", 80, 24, 800, 600, 1024);
+                    _ = ReadFromShellStreamAsync();
+                    Snackbar.Add("Connected successfully!", Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add("Failed to connect to SSH server.", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private void ConnectUsingSshKey(SshCredential credential)
+    {
+        var keyFile = new PrivateKeyFile(new MemoryStream(Encoding.UTF8.GetBytes(credential.SshKeyContent)));
+        var keyFiles = new[] { keyFile };
+        var connectionInfo = new ConnectionInfo(credential.Host, credential.Username, new PrivateKeyAuthenticationMethod(credential.Username, keyFiles));
+
+        _client = new SshClient(connectionInfo);
+        _client.Connect();
+    }
+
+    private async Task ReadFromShellStreamAsync()
+    {
+        var buffer = new byte[1024];
+        while (_client.IsConnected && _shellStream != null)
+        {
+            if (_shellStream.DataAvailable)
+            {
+                var bytesRead = await _shellStream.ReadAsync(buffer, 0, buffer.Length);
+                var output = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                await JSRuntime.InvokeVoidAsync("writeToTerminal", output);
+            }
+            await Task.Delay(100); // Prevent busy-waiting
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnTerminalInput(string input)
+    {
+        if (_client.IsConnected && _shellStream != null)
+        {
+            _shellStream.Write(input);
+        }
+    }
+
+    public void Dispose()
+    {
+        _shellStream?.Dispose();
+        _client?.Disconnect();
+        _client?.Dispose();
+    }
+}

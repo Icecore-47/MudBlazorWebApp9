@@ -1,0 +1,50 @@
+﻿@page "/protected"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Protected Page</PageTitle>
+
+<h3>Protected Page</h3>
+
+<p>You are seeing this page because you are logged in.</p>
+
+@if (claims != null)
+{
+    <h4>Your Claims:</h4>
+    <ul>
+        @foreach (var claim in claims)
+        {
+            <li><strong>@claim.Type</strong>: @claim.Value</li>
+        }
+    </ul>
+}
+else
+{
+    <p>Loading claims...</p>
+}
+
+<MudButton OnClick="Logout">Logout</MudButton>
+
+@code {
+    private IEnumerable<Claim> claims;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            claims = user.Claims; // Get the claims from the authenticated user
+        }
+    }
+
+    private async Task Logout()
+    {
+        // Add your logout logic here
+    }
+
+}
